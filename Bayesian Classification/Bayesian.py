@@ -1,9 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Fri Oct 20 22:18:49 2017
-
-@author: Jeremiah
-"""
 import math
 import os
 from nltk.tokenize import RegexpTokenizer
