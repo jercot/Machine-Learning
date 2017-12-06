@@ -3,12 +3,10 @@ import numpy as np
 import timeit
 
 start = timeit.default_timer()
-
-n = 25
+n = 8
 moves = 0
-threat = 0
 temp = 1000
-stsh, shhc, sthc, rrhc, stsa, rrsa, bestNeighbour = ([],)*7
+stsa, sahc, sthc, rrhc, stsa, rrsa, = ([],)*6
 
 def createBoard(): # Creates the board using random
     board = []
@@ -45,8 +43,8 @@ def bestNeighbour(input): # Checks Neighbours to find the best neighbour
     tempThreats = countThreats(tempNeighbour)
     for x in range(n):
         board = list(tempNeighbour) # Used to reset board so only one piece moves
-        for y in range(-1, 3, 3): # For loop - back one forward two. As to check both vertical movements
-            board[x]+=y
+        for y in range(0, n-1): # For loop - back one forward two. As to check both vertical movements
+            board[x]=y
             if board[x]>=0 and board[x]<n: # Checks that numbers are on the board
                 threats = countThreats(board)
                 if threats<tempThreats: # Used so you can check all neighbours without updating
@@ -111,7 +109,7 @@ def annealing(): # Runs random restart annealing with temp of 4000
     bestThreats = countThreats(bestBoard)
     global temp
     for x in range(10): # Change this to one to remove the restart of Annealing
-        temp = 10000
+        temp = 100
         while temp>0 and bestThreats>0:
             startBoard = createBoard()
             board = annealHillClimb(startBoard)
@@ -122,15 +120,15 @@ def annealing(): # Runs random restart annealing with temp of 4000
                 start = list(startBoard)
                 if bestThreats==0: # Exits inner loop at optimal
                     break
-            temp -= 100
+            temp -= 1
         if bestThreats==0: # Exits outter loop at optimal
             break
     return start, bestBoard
 
-stsh = createBoard()
-printBoard("Hill Climbing Start Board", stsh)
-shhc = hillClimb(stsh)
-printBoard("\nHill Climbing Best Board", shhc)
+stsa = createBoard()
+printBoard("Steepest Ascent Start Board", stsa)
+sahc = hillClimb(stsa)
+printBoard("\nSteepest Ascent Best Board", sahc)
 moves = 0
 sthc, rrhc = randomRestart()
 printBoard("\nRandom Restart Start Board", sthc)
