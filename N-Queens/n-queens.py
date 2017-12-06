@@ -1,7 +1,7 @@
 import random
 import numpy as np
 
-n = 8
+n = 25
 moves = 0
 threat = 0
 temp = 4000
@@ -50,58 +50,70 @@ def bestNeighbour(input): # Checks Neighbours to find the best neighbour
                     tempNeighbour = list(board)
     return tempNeighbour
 
-def hillClimb(input, anneal): # Climnbs hill for best answer. Has both annealing and steepest hill
+def hillClimb(input): # Climnbs hill for best answer. Has both annealing and steepest hill
     global moves, temp
     bestBoard, board = (list(input),)*2
     best = False
     while not best: # Stops when no better neighbour
-        change = False
         board = bestNeighbour(board)
         if countThreats(bestBoard) > countThreats(board): # Checks for any better board
             bestBoard = list(board)
             moves += 1
-            change = True
-        elif anneal and not change: # Calculates annealing probability
-            prob = np.exp(-countThreats(board)-countThreats(bestBoard)/temp)
-            randomNo = random.uniform(0,1)
-            if randomNo<prob:
-                bestBoard = list(board)
-                moves += 1
         else:
             best = True
     return bestBoard
-
-def randomRestart(anneal): # Restarts 500 times to find the best board
+            
+def randomRestart(): # Restarts 500 times to find the best board
     start, bestBoard = (createBoard(),)*2
     for x in range(500):
         startBoard = createBoard()
-        board = hillClimb(startBoard, anneal)
+        board = hillClimb(startBoard)
         if countThreats(board) < countThreats(bestBoard):
             bestBoard= list(board)
-            start = startBoard
+            start = list(startBoard)
             if countThreats(bestBoard)==0:
                 break # Exit loop if optimal solution is found.
     return start, bestBoard
 
+def annealHillClimb(input):
+    global moves, temp
+    bestBoard, board = (list(input),)*2
+    change = False
+    board = bestNeighbour(board)
+    if countThreats(bestBoard) > countThreats(board): # Checks for any better board
+        bestBoard = list(board)
+        moves += 1
+        change = True
+    elif not change and temp>0: # Calculates annealing probability
+        prob = np.exp(-countThreats(board)-countThreats(bestBoard)/temp)
+        randomNo = random.uniform(0,1)
+        if randomNo<prob:
+            bestBoard = list(board)
+            moves += 1
+    return bestBoard
+
 def annealing(): # Runs random restart annealing with temp of 4000
     start, bestBoard = (createBoard(),)*2
-    temp = 4000
-    while temp>0 and countThreats(bestBoard)>0:
-        tempStart, tempBest = randomRestart(True)
-        if countThreats(tempBest) < countThreats(bestBoard):
-            start = tempStart
-            bestBoard = tempBest
-            if countThreats(bestBoard)==0:
-                break
-        temp -= 1
+    global temp
+    for x in range(10):
+        temp = 4000
+        while temp>0 and countThreats(bestBoard)>0:
+            startBoard = createBoard()
+            board = annealHillClimb(startBoard)
+            if countThreats(board) < countThreats(bestBoard):
+                bestBoard= list(board)
+                start = list(startBoard)
+                if countThreats(bestBoard)==0:
+                    break
+            temp -= 100
     return start, bestBoard
 
 stsh = createBoard()
 printBoard("Hill Climbing Start Board", stsh)
-shhc = hillClimb(stsh, False)
+shhc = hillClimb(stsh)
 printBoard("\nHill Climbing Best Board", shhc)
 moves = 0
-sthc, rrhc = randomRestart(False)
+sthc, rrhc = randomRestart()
 printBoard("\nRandom Restart Start Board", sthc)
 printBoard("\nRandom Restart Best Board", rrhc)
 moves = 0
