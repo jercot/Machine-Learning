@@ -3,13 +3,31 @@ import numpy as np
 
 n = 8
 moves = 0
+threat = 0
+temp = 4000
+stsh, shhc, sthc, rrhc, stsa, rrsa, bestNeighbour = ([],)*7
 
 def createBoard(): # Creates the board using random
     board = []
     for x in range(n):
         board.append(random.randint(0, n-1))
     return board
-     
+
+def printBoard(title, board): # Prints the board in an easy to read way
+    print(title)
+    print(board)
+    for x in range(n):
+        for y in range(n):
+            print("|", end="")
+            if x==board[y]:
+                print("Q", end="")
+            else:
+                print("-", end="")
+        print("|")
+    print("Threats:", countThreats(board))
+    if "Start" not in title:
+        print("Moves:", moves)
+
 def countThreats(board): # Heuristic function
     threats = 0
     for i in range(n): # For loop starting after the current column i
@@ -19,113 +37,74 @@ def countThreats(board): # Heuristic function
             if board[i]==board[j]-offset or board[i]==board[j]+offset or board[i]==board[j]:
                 threats += 1
     return threats
-    
-def finalBoard(board): #Checks Neighbours to find the best neighbour
-    bestThreat, tempThreat = (countThreats(board),)*2
-    bestNeighbour, tempNeighbour = (list(board),)*2
-    global moves
-    moves = 0
-    better = True
-    while better: # Loops while there is better neighbours
-        better = False
-        for x in range(n):
-            board = list(bestNeighbour) # Used to reset board so only one piece moves
-            for y in range(-1, 3, 3): # For loop - back one forward two. As to check both vertical movements
-                board[x]+=y
-                if board[x]>=0 and board[x]<n: # Checks that numbers are on the board
-                    threats = countThreats(board)
-                    if threats<tempThreat: # Used so you can check all neighbours without updating
-                        tempThreat = threats
-                        tempNeighbour = list(board)
-        if tempThreat<bestThreat: # Updates best baord after all neighbours are checked
-            bestThreat = tempThreat
-            bestNeighbour = list(tempNeighbour)
-            better = True
-            moves += 1
-    return bestNeighbour
 
-def randomRestart(board):
-    bestBoard, tempBoard, firstBoard = (list(board),)*3
-    bestThreats = countThreats(bestBoard)
-    # Either loops works. For loop stops even without the best. While keeps going til it finds an answer
-    for x in range (500):
-    #while bestThreats>0:
-        startBoard = createBoard()
-        tempBoard = finalBoard(startBoard)
-        threats = countThreats(tempBoard)
-        if threats<bestThreats:
-            bestThreats = threats
-            bestBoard = list(tempBoard)
-            firstBoard = list(startBoard)
-            movements = moves
-    print("\nRandom Restart Start Board")
-    printBoard(firstBoard)
-    print("Threats:", countThreats(firstBoard))
-    print("\nRandom Restart Best Board")
-    printBoard(bestBoard)
-    print("Threats:", countThreats(bestBoard))
-    print("Moves:", movements)
-    
-def annealing():
-    board = createBoard()
-    bestThreat, tempThreat = (countThreats(board),)*2
-    bestNeighbour, tempNeighbour = (list(board),)*2
-    temp = 8000
-    moves = 0
-    print("\nAnnealing Start Board")
-    printBoard(board)
-    print("Threats:", countThreats(board))
-    while temp>0:
+def bestNeighbour(input): # Checks Neighbours to find the best neighbour
+    tempNeighbour = list(input)
+    for x in range(n):
+        board = list(tempNeighbour) # Used to reset board so only one piece moves
+        for y in range(-1, 3, 3): # For loop - back one forward two. As to check both vertical movements
+            board[x]+=y
+            if board[x]>=0 and board[x]<n: # Checks that numbers are on the board
+                threats = countThreats(board)
+                if threats<countThreats(tempNeighbour): # Used so you can check all neighbours without updating
+                    tempNeighbour = list(board)
+    return tempNeighbour
+
+def hillClimb(input, anneal): # Climnbs hill for best answer. Has both annealing and steepest hill
+    global moves, temp
+    bestBoard, board = (list(input),)*2
+    best = False
+    while not best: # Stops when no better neighbour
         change = False
-        for x in range(n):
-            board = list(bestNeighbour)
-            for y in range(-1, 3, 3):
-                board[x]+=y
-                if board[x]>=0 and board[x]<n: # Checks that numbers are on the board
-                    threats = countThreats(board)
-                    if threats<tempThreat: # Used so you can check all neighbours without updating
-                        tempThreat = threats
-                        tempNeighbour = list(board)
-                        change = True
-                    elif temp>0: # If temp is greater than 0 it checks neighbour with annealing.
-                        prob = np.exp(-threats-bestThreat/temp)
-                        randomNo = random.uniform(0,1)
-                        #print(-threats-bestThreat," | ", prob, "|", randomNo)
-                        if randomNo < prob:
-                            tempThreat = threats
-                            tempNeighbour = list(board)
-                            change=True
-        if change==True:
-            bestThreat = tempThreat
-            bestNeighbour = list(tempNeighbour)
-            moves+=1
-        temp-=1
-    print("\nAnnealing Start Board")
-    printBoard(bestNeighbour)
-    print("Threats:", countThreats(bestNeighbour))
-    print("Moves:", moves)
-                    
-        
+        board = bestNeighbour(board)
+        if countThreats(bestBoard) > countThreats(board): # Checks for any better board
+            bestBoard = list(board)
+            moves += 1
+            change = True
+        elif anneal and not change: # Calculates annealing probability
+            prob = np.exp(-countThreats(board)-countThreats(bestBoard)/temp)
+            randomNo = random.uniform(0,1)
+            if randomNo<prob:
+                bestBoard = list(board)
+                moves += 1
+        else:
+            best = True
+    return bestBoard
 
-def printBoard(board): # Prints the board in an easy to read way
-    print(board)
-    for x in range(n-1):
-        for y in range(n):
-            print("|", end="")
-            if x==board[y]:
-                print("Q", end="")
-            else:
-                print("-", end="")
-        print("|")
+def randomRestart(anneal): # Restarts 500 times to find the best board
+    start, bestBoard = (createBoard(),)*2
+    for x in range(500):
+        startBoard = createBoard()
+        board = hillClimb(startBoard, anneal)
+        if countThreats(board) < countThreats(bestBoard):
+            bestBoard= list(board)
+            start = startBoard
+            if countThreats(bestBoard)==0:
+                break # Exit loop if optimal solution is found.
+    return start, bestBoard
 
-board = createBoard()
-print("Hill Climbing Start Board")
-printBoard(board)
-print("Threats:", countThreats(board))
-best = finalBoard(board)
-print("\nHill Climbing Best Board")
-printBoard(best)
-print("Threats:", countThreats(best))
-print("Moves:", moves)
-randomRestart(board)
-annealing()
+def annealing(): # Runs random restart annealing with temp of 4000
+    start, bestBoard = (createBoard(),)*2
+    temp = 4000
+    while temp>0 and countThreats(bestBoard)>0:
+        tempStart, tempBest = randomRestart(True)
+        if countThreats(tempBest) < countThreats(bestBoard):
+            start = tempStart
+            bestBoard = tempBest
+            if countThreats(bestBoard)==0:
+                break
+        temp -= 1
+    return start, bestBoard
+
+stsh = createBoard()
+printBoard("Hill Climbing Start Board", stsh)
+shhc = hillClimb(stsh, False)
+printBoard("\nHill Climbing Best Board", shhc)
+moves = 0
+sthc, rrhc = randomRestart(False)
+printBoard("\nRandom Restart Start Board", sthc)
+printBoard("\nRandom Restart Best Board", rrhc)
+moves = 0
+stsa, rrsa = annealing()
+printBoard("\nAnnealed Start Baord", stsa)
+printBoard("\nAnnealed Best Board", rrsa)
