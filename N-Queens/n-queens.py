@@ -39,10 +39,10 @@ def countThreats(board): # Heuristic function
     return threats
 
 def bestNeighbour(input): # Checks Neighbours to find the best neighbour
-    tempNeighbour = list(input)
+    tempNeighbour, rBoard = (list(input),)*2
     tempThreats = countThreats(tempNeighbour)
     for x in range(n):
-        board = list(tempNeighbour) # Used to reset board so only one piece moves
+        board = list(rBoard) # Used to reset board so only one piece moves
         for y in range(0, n-1): # For loop - back one forward two. As to check both vertical movements
             board[x]=y
             if board[x]>=0 and board[x]<n: # Checks that numbers are on the board
